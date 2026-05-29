@@ -8,105 +8,123 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      width: 600px;
-      height: 600px;
+      width: 600px; height: 600px;
       overflow: hidden;
-      background: #000; /* transparent on additive display */
+      background: #000;
       font-family: system-ui, -apple-system, sans-serif;
       color: #fff;
       user-select: none;
     }
 
-    #app {
-      width: 600px;
-      height: 600px;
-      position: relative;
-    }
+    #app { width: 600px; height: 600px; position: relative; }
 
-    /* Canvas fills entire display */
-    canvas {
+    canvas { position: absolute; inset: 0; display: block; }
+
+    .surface { background: #0a0a0f; border-radius: 12px; }
+
+    /* ── Welcome screen ───────────────────────────────────────────── */
+    #welcome {
       position: absolute;
       inset: 0;
-      display: block;
-    }
-
-    /* HUD surfaces — must be non-black to be visible on additive display */
-    .surface {
-      background: #0a0a0f;
-      border-radius: 12px;
-    }
-
-    /* Top bar */
-    #topbar {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      height: 48px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-    }
-
-    #model-name {
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
-      opacity: 0.9;
-    }
-
-    #mode-badge {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 8px;
-      background: #1c2a3a;
-      color: #63b3ed;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      transition: background 300ms cubic-bezier(0.4, 0.04, 0.5, 1),
-                  color 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
-    }
-    #mode-badge.zoom  { background: #1a2e1a; color: #68d391; }
-    #mode-badge.reset { background: #2e1a1a; color: #fc8181; }
-
-    /* Bottom control rail */
-    #bottombar {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      right: 8px;
-      height: 48px;
-      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 24px;
-      padding: 0 16px;
+      gap: 16px;
+      padding: 24px;
+      background: #000;
     }
 
-    .ctrl-hint {
+    #welcome h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #e4e6eb;
+      margin-bottom: 4px;
+    }
+
+    #welcome p {
+      font-size: 13px;
+      color: #718096;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 4px;
+    }
+
+    .input-row {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+    }
+
+    #url-input {
+      flex: 1;
+      background: #1C1E21;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #e4e6eb;
+      outline: none;
+      transition: border-color 200ms;
+    }
+    #url-input:focus { border-color: #63b3ed; }
+    #url-input::placeholder { color: #4a5568; }
+
+    .btn {
+      background: #2d4a6e;
+      color: #e4e6eb;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 150ms;
+      white-space: nowrap;
+    }
+    .btn:hover, .btn:focus { background: #3a5f8a; outline: none; }
+    .btn.primary { background: #2b6cb0; }
+    .btn.primary:hover { background: #3182ce; }
+
+    .divider {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
+      width: 100%;
+      color: #4a5568;
       font-size: 12px;
-      color: #b0b3b8;
     }
-    .ctrl-key {
-      background: #1C1E21;
-      border: 1px solid #333;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 11px;
-      color: #e4e6eb;
-      font-weight: 600;
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2d3748;
     }
 
-    /* Loading screen */
+    #drop-zone {
+      width: 100%;
+      border: 1px dashed #2d3748;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #4a5568;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 150ms, color 150ms;
+    }
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: #63b3ed;
+      color: #63b3ed;
+    }
+    #drop-zone span { display: block; font-size: 11px; margin-top: 4px; color: #4a5568; }
+
+    #file-input { display: none; }
+
+    /* ── Loading ──────────────────────────────────────────────────── */
     #loading {
       position: absolute;
       inset: 0;
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -121,109 +139,150 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #loading-label {
-      font-size: 14px;
-      color: #b0b3b8;
-    }
+    #loading-label { font-size: 14px; color: #b0b3b8; }
 
-    /* Focus ring for interactive elements */
-    .focusable {
-      outline: none;
-      transition: transform 475ms cubic-bezier(0.6, 0, 0.4, 1),
-                  box-shadow 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
-    }
-    .focusable:focus {
-      transform: scale(0.91);
-      box-shadow: 0 0 0 2px #63b3ed;
-    }
-
-    /* Toast */
-    #toast {
+    /* ── Viewer HUD ───────────────────────────────────────────────── */
+    #topbar {
       position: absolute;
-      top: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1C1E21;
-      color: #e4e6eb;
-      font-size: 13px;
-      padding: 8px 20px;
-      border-radius: 24px;
-      opacity: 0;
-      transition: opacity 200ms;
-      pointer-events: none;
-      white-space: nowrap;
+      top: 8px; left: 8px; right: 8px;
+      height: 48px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
     }
-    #toast.show { opacity: 1; }
+    #model-name { font-size: 15px; font-weight: 700; color: #fff; opacity: 0.9; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* D-pad visual indicator (shows active direction) */
-    #dpad-indicator {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: grid;
-      grid-template-columns: 20px 20px 20px;
-      grid-template-rows: 20px 20px 20px;
-      gap: 2px;
-      opacity: 0.35;
+    #mode-badge {
+      font-size: 12px; font-weight: 600;
+      padding: 4px 10px; border-radius: 8px;
+      background: #1c2a3a; color: #63b3ed;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer;
+      transition: background 300ms cubic-bezier(0.4,0.04,0.5,1), color 300ms;
     }
-    .dpad-btn {
-      background: #1C1E21;
-      border-radius: 4px;
-      display: flex;
+    #mode-badge.zoom  { background: #1a2e1a; color: #68d391; }
+    #mode-badge.reset { background: #2e1a1a; color: #fc8181; }
+
+    #back-btn {
+      font-size: 18px; background: none; border: none;
+      color: #718096; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      transition: color 150ms;
+    }
+    #back-btn:hover { color: #e4e6eb; }
+
+    #bottombar {
+      position: absolute;
+      bottom: 8px; left: 8px; right: 8px;
+      height: 48px;
+      display: none;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      color: #e4e6eb;
+      gap: 20px;
+      padding: 0 16px;
+    }
+    .ctrl-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b0b3b8; }
+    .ctrl-key {
+      background: #1C1E21; border: 1px solid #333; border-radius: 4px;
+      padding: 2px 6px; font-size: 11px; color: #e4e6eb; font-weight: 600;
+    }
+
+    #dpad-indicator {
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      display: none;
+      grid-template-columns: 20px 20px 20px;
+      grid-template-rows: 20px 20px 20px;
+      gap: 2px; opacity: 0.35;
+    }
+    .dpad-btn {
+      background: #1C1E21; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #e4e6eb;
       transition: background 100ms, opacity 100ms;
     }
     .dpad-btn.active { background: #2d4a6e; opacity: 1; }
-    .dpad-center { background: #1C1E21; }
+
+    #toast {
+      position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
+      background: #1C1E21; color: #e4e6eb; font-size: 13px;
+      padding: 8px 20px; border-radius: 24px;
+      opacity: 0; transition: opacity 200ms;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    #error-bar {
+      position: absolute; bottom: 70px; left: 24px; right: 24px;
+      background: #742a2a; color: #fed7d7; font-size: 13px;
+      padding: 10px 16px; border-radius: 8px;
+      display: none; text-align: center; line-height: 1.4;
+    }
+
+    /* Drop overlay while dragging onto viewer */
+    #drop-overlay {
+      position: absolute; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(49,130,206,0.12);
+      border: 3px dashed #63b3ed;
+      font-size: 18px; color: #63b3ed;
+      pointer-events: none;
+    }
+    #drop-overlay.active { display: flex; }
   </style>
 </head>
 <body>
 <div id="app">
+
+  <!-- Welcome screen -->
+  <div id="welcome">
+    <h1>GLB / GLTF Viewer</h1>
+    <p>Paste a direct link to a <b>.glb</b> or <b>.gltf</b> file, or drop a file from your computer.</p>
+
+    <div class="input-row">
+      <input id="url-input" type="url" placeholder="https://example.com/model.glb" autocomplete="off" spellcheck="false" />
+      <button class="btn primary" id="load-url-btn">Load</button>
+    </div>
+
+    <div class="divider">or</div>
+
+    <div id="drop-zone">
+      📂 Click to browse or drag & drop a file
+      <span>.glb · .gltf supported</span>
+    </div>
+    <input type="file" id="file-input" accept=".glb,.gltf" />
+  </div>
+
+  <!-- Loading -->
   <div id="loading">
     <div class="spinner"></div>
     <div id="loading-label">Loading model…</div>
   </div>
 
-  <!-- Top bar: model name + mode -->
-  <div id="topbar" class="surface" style="display:none">
-    <span id="model-name">L-39 Skyfox</span>
-    <span id="mode-badge" class="focusable" tabindex="0" data-action="cycle-mode">ROTATE</span>
+  <!-- Viewer HUD -->
+  <div id="topbar" class="surface">
+    <button id="back-btn" title="Load another model">←</button>
+    <span id="model-name"></span>
+    <span id="mode-badge">ROTATE</span>
   </div>
 
-  <!-- D-pad visual -->
-  <div id="dpad-indicator" style="display:none">
-    <div></div>
-    <div class="dpad-btn" id="dp-up">▲</div>
-    <div></div>
+  <div id="dpad-indicator">
+    <div></div><div class="dpad-btn" id="dp-up">▲</div><div></div>
     <div class="dpad-btn" id="dp-left">◀</div>
-    <div class="dpad-btn dpad-center" id="dp-enter">●</div>
+    <div class="dpad-btn" id="dp-enter">●</div>
     <div class="dpad-btn" id="dp-right">▶</div>
-    <div></div>
-    <div class="dpad-btn" id="dp-down">▼</div>
-    <div></div>
+    <div></div><div class="dpad-btn" id="dp-down">▼</div><div></div>
   </div>
 
-  <!-- Bottom bar: control hints -->
-  <div id="bottombar" class="surface" style="display:none">
-    <span class="ctrl-hint">
-      <span class="ctrl-key">← →</span> rotate
-    </span>
-    <span class="ctrl-hint">
-      <span class="ctrl-key">↑ ↓</span> tilt
-    </span>
-    <span class="ctrl-hint">
-      <span class="ctrl-key">Enter</span> mode
-    </span>
-    <span class="ctrl-hint">
-      <span class="ctrl-key">Esc</span> reset
-    </span>
+  <div id="bottombar" class="surface">
+    <span class="ctrl-hint"><span class="ctrl-key">← →</span> rotate</span>
+    <span class="ctrl-hint"><span class="ctrl-key">↑ ↓</span> tilt</span>
+    <span class="ctrl-hint"><span class="ctrl-key">Enter</span> mode</span>
+    <span class="ctrl-hint"><span class="ctrl-key">Esc</span> reset</span>
   </div>
 
+  <div id="drop-overlay">Drop to load</div>
   <div id="toast"></div>
+  <div id="error-bar"></div>
 </div>
 
 <script type="importmap">
@@ -249,17 +308,14 @@ renderer.setSize(600, 600);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.setClearColor(0x000000, 0); // transparent
-document.getElementById('app').insertBefore(renderer.domElement, document.getElementById('loading'));
+renderer.setClearColor(0x000000, 0);
+document.getElementById('app').insertBefore(renderer.domElement, document.getElementById('welcome'));
 
 // ── Scene ─────────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
-
-// ── Camera ────────────────────────────────────────────────────────────────────
 const camera = new THREE.PerspectiveCamera(40, 1, 0.001, 1000);
 camera.position.set(0, 2, 8);
 
-// ── Lighting ──────────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
 dirLight.position.set(5, 10, 7);
@@ -271,36 +327,38 @@ scene.add(rimLight);
 const pmrem = new PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-// ── Loader ────────────────────────────────────────────────────────────────────
+// ── Loaders ───────────────────────────────────────────────────────────────────
 const draco = new DRACOLoader();
 draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/libs/draco/');
-const gltf = new GLTFLoader();
-gltf.setDRACOLoader(draco);
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const MODES = ['ROTATE', 'ZOOM', 'RESET'];
 let modeIndex = 0;
-
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-let model = null;
+let currentModel = null;
 let modelCenter = new THREE.Vector3();
 let modelRadius = 1;
-let camTheta = 0;   // horizontal angle (radians)
-let camPhi = 0.3;   // vertical angle (radians)
-let camDist = 8;
+let camTheta = 0, camPhi = 0.3, camDist = 8;
+const ROTATE_SPEED = 0.022, ZOOM_SPEED = 0.08;
 
-const ROTATE_SPEED = 0.022;
-const ZOOM_SPEED   = 0.08;
-const PHI_MIN = -1.1;
-const PHI_MAX =  1.1;
-
-// ── DOM refs ──────────────────────────────────────────────────────────────────
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const welcomeEl  = document.getElementById('welcome');
 const loadingEl  = document.getElementById('loading');
+const loadLabel  = document.getElementById('loading-label');
 const topbarEl   = document.getElementById('topbar');
 const bottomEl   = document.getElementById('bottombar');
 const dpadEl     = document.getElementById('dpad-indicator');
 const modeBadge  = document.getElementById('mode-badge');
+const modelName  = document.getElementById('model-name');
 const toastEl    = document.getElementById('toast');
+const errorBar   = document.getElementById('error-bar');
+const urlInput   = document.getElementById('url-input');
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const dropOverlay= document.getElementById('drop-overlay');
+const backBtn    = document.getElementById('back-btn');
 
 let toastTimer = null;
 
@@ -311,24 +369,43 @@ function showToast(msg, duration = 1800) {
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
 }
 
+function showError(msg) {
+  errorBar.textContent = msg;
+  errorBar.style.display = 'block';
+  setTimeout(() => errorBar.style.display = 'none', 6000);
+}
+
+function showViewer(name) {
+  welcomeEl.style.display = 'none';
+  loadingEl.style.display = 'none';
+  topbarEl.style.display  = 'flex';
+  bottomEl.style.display  = 'flex';
+  dpadEl.style.display    = 'grid';
+  modelName.textContent   = name;
+  showToast('Loaded — use D-pad to navigate', 2500);
+}
+
+function showWelcome() {
+  welcomeEl.style.display = 'flex';
+  loadingEl.style.display = 'none';
+  topbarEl.style.display  = 'none';
+  bottomEl.style.display  = 'none';
+  dpadEl.style.display    = 'none';
+}
+
 function setMode(idx) {
   modeIndex = idx % MODES.length;
   const label = MODES[modeIndex];
   modeBadge.textContent = label;
-  modeBadge.className = 'focusable ' + label.toLowerCase().replace('rotace', '').replace('zoom', 'zoom').replace('reset', 'reset');
-  if (label === 'ROTATE') modeBadge.className = 'focusable';
-  if (label === 'ZOOM')   modeBadge.className = 'focusable zoom';
-  if (label === 'RESET')  { modeBadge.className = 'focusable reset'; resetCamera(); }
+  modeBadge.className = label === 'ZOOM' ? 'zoom' : label === 'RESET' ? 'reset' : '';
+  if (label === 'RESET') resetCamera();
   showToast(label === 'ROTATE' ? '↔ Rotate' : label === 'ZOOM' ? '⇅ Zoom' : '⟳ Reset view');
 }
 
 function resetCamera() {
-  camTheta = 0;
-  camPhi   = 0.3;
-  camDist  = modelRadius * 2.5;
+  camTheta = 0; camPhi = 0.3; camDist = modelRadius * 2.5;
 }
 
-// ── Camera positioning from spherical coords ──────────────────────────────────
 function updateCamera() {
   const x = modelCenter.x + camDist * Math.cos(camPhi) * Math.sin(camTheta);
   const y = modelCenter.y + camDist * Math.sin(camPhi);
@@ -337,31 +414,83 @@ function updateCamera() {
   camera.lookAt(modelCenter);
 }
 
-// ── Load model ────────────────────────────────────────────────────────────────
-gltf.load('model/scene.gltf', loaded => {
-  model = loaded.scene;
-  scene.add(model);
+function onModelLoaded(gltf, name) {
+  if (currentModel) scene.remove(currentModel);
+  currentModel = gltf.scene;
+  scene.add(currentModel);
 
-  const box = new THREE.Box3().setFromObject(model);
+  const box = new THREE.Box3().setFromObject(currentModel);
   box.getCenter(modelCenter);
   modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
   camDist = modelRadius * 2.5;
-  camTheta = 0;
-  camPhi   = 0.2;
-
-  loadingEl.style.display  = 'none';
-  topbarEl.style.display    = 'flex';
-  bottomEl.style.display    = 'flex';
-  dpadEl.style.display      = 'grid';
-
-  showToast('Loaded — use D-pad to navigate', 2500);
+  camTheta = 0; camPhi = 0.2;
   updateCamera();
-}, undefined, err => {
-  document.getElementById('loading-label').textContent = 'Error: ' + (err.message || err);
-  console.error(err);
-});
+  showViewer(name);
+}
 
-// ── D-pad visual feedback ─────────────────────────────────────────────────────
+function loadFromUrl(url) {
+  const name = url.split('/').pop().split('?')[0] || 'Model';
+  welcomeEl.style.display = 'none';
+  loadingEl.style.display = 'flex';
+  loadLabel.textContent = 'Loading model…';
+
+  loader.load(url,
+    gltf => onModelLoaded(gltf, name),
+    xhr => { if (xhr.total) loadLabel.textContent = `Loading… ${Math.round(xhr.loaded/xhr.total*100)}%`; },
+    err => { showWelcome(); showError('Failed to load: ' + (err.message || 'Check URL and CORS headers.')); }
+  );
+}
+
+function loadFromFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext !== 'glb' && ext !== 'gltf') { showError('Only .glb and .gltf files are supported.'); return; }
+
+  welcomeEl.style.display = 'none';
+  loadingEl.style.display = 'flex';
+  loadLabel.textContent = 'Loading model…';
+
+  const url = URL.createObjectURL(file);
+  loader.load(url,
+    gltf => { URL.revokeObjectURL(url); onModelLoaded(gltf, file.name); },
+    undefined,
+    err => { URL.revokeObjectURL(url); showWelcome(); showError('Failed to load: ' + (err.message || err)); }
+  );
+}
+
+// ── URL input ─────────────────────────────────────────────────────────────────
+document.getElementById('load-url-btn').addEventListener('click', () => {
+  const url = urlInput.value.trim();
+  if (!url) { urlInput.focus(); return; }
+  loadFromUrl(url);
+});
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('load-url-btn').click(); });
+
+// ── File picker ───────────────────────────────────────────────────────────────
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => loadFromFile(fileInput.files[0]));
+
+// ── Drag & drop on welcome ────────────────────────────────────────────────────
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); loadFromFile(e.dataTransfer.files[0]); });
+
+// ── Drag & drop on viewer ─────────────────────────────────────────────────────
+document.addEventListener('dragover', e => { if (currentModel) { e.preventDefault(); dropOverlay.classList.add('active'); } });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) dropOverlay.classList.remove('active'); });
+document.addEventListener('drop', e => { e.preventDefault(); dropOverlay.classList.remove('active'); if (currentModel) loadFromFile(e.dataTransfer.files[0]); });
+
+// ── Back button ───────────────────────────────────────────────────────────────
+backBtn.addEventListener('click', showWelcome);
+
+// ── ?url= query param ─────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+if (params.get('url')) {
+  urlInput.value = params.get('url');
+  loadFromUrl(params.get('url'));
+}
+
+// ── D-pad feedback ────────────────────────────────────────────────────────────
 function flashDpad(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -371,49 +500,33 @@ function flashDpad(id) {
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 window.addEventListener('keydown', e => {
+  if (document.activeElement === urlInput) return;
   if (e.key in keys) { keys[e.key] = true; e.preventDefault(); }
-
-  if (e.key === 'Enter') {
-    setMode(modeIndex + 1);
-    flashDpad('dp-enter');
-  }
-  if (e.key === 'Escape') {
-    resetCamera();
-    showToast('⟳ Reset view');
-  }
-  // D-pad flash on press
-  const dpadMap = { ArrowLeft: 'dp-left', ArrowRight: 'dp-right', ArrowUp: 'dp-up', ArrowDown: 'dp-down' };
+  if (e.key === 'Enter' && currentModel) { setMode(modeIndex + 1); flashDpad('dp-enter'); }
+  if (e.key === 'Escape' && currentModel) { resetCamera(); showToast('⟳ Reset view'); }
+  const dpadMap = { ArrowLeft:'dp-left', ArrowRight:'dp-right', ArrowUp:'dp-up', ArrowDown:'dp-down' };
   if (dpadMap[e.key]) flashDpad(dpadMap[e.key]);
 });
-
-window.addEventListener('keyup', e => {
-  if (e.key in keys) keys[e.key] = false;
-});
+window.addEventListener('keyup', e => { if (e.key in keys) keys[e.key] = false; });
 
 // ── Render loop ───────────────────────────────────────────────────────────────
 function animate() {
   requestAnimationFrame(animate);
-
-  if (model) {
+  if (currentModel && topbarEl.style.display !== 'none') {
     const mode = MODES[modeIndex];
-
     if (mode === 'ROTATE') {
       if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED;
       if (keys.ArrowRight) camTheta += ROTATE_SPEED;
-      if (keys.ArrowUp)    camPhi = Math.min(PHI_MAX, camPhi + ROTATE_SPEED);
-      if (keys.ArrowDown)  camPhi = Math.max(PHI_MIN, camPhi - ROTATE_SPEED);
+      if (keys.ArrowUp)    camPhi = Math.min(1.1, camPhi + ROTATE_SPEED);
+      if (keys.ArrowDown)  camPhi = Math.max(-1.1, camPhi - ROTATE_SPEED);
     } else if (mode === 'ZOOM') {
-      const minDist = modelRadius * 0.5;
-      const maxDist = modelRadius * 6;
-      if (keys.ArrowUp)   camDist = Math.max(minDist, camDist - ZOOM_SPEED * modelRadius * 0.1);
-      if (keys.ArrowDown) camDist = Math.min(maxDist, camDist + ZOOM_SPEED * modelRadius * 0.1);
+      if (keys.ArrowUp)    camDist = Math.max(modelRadius * 0.5, camDist - ZOOM_SPEED * modelRadius * 0.1);
+      if (keys.ArrowDown)  camDist = Math.min(modelRadius * 6, camDist + ZOOM_SPEED * modelRadius * 0.1);
       if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED * 0.5;
       if (keys.ArrowRight) camTheta += ROTATE_SPEED * 0.5;
     }
-
     updateCamera();
   }
-
   renderer.render(scene, camera);
 }
 animate();
