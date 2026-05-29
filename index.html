@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0" />
+  <title>GLB Viewer — Meta Display Glasses</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 600px;
+      height: 600px;
+      overflow: hidden;
+      background: #000; /* transparent on additive display */
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #fff;
+      user-select: none;
+    }
+
+    #app {
+      width: 600px;
+      height: 600px;
+      position: relative;
+    }
+
+    /* Canvas fills entire display */
+    canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    /* HUD surfaces — must be non-black to be visible on additive display */
+    .surface {
+      background: #0a0a0f;
+      border-radius: 12px;
+    }
+
+    /* Top bar */
+    #topbar {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    #model-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.9;
+    }
+
+    #mode-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #1c2a3a;
+      color: #63b3ed;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: background 300ms cubic-bezier(0.4, 0.04, 0.5, 1),
+                  color 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
+    }
+    #mode-badge.zoom  { background: #1a2e1a; color: #68d391; }
+    #mode-badge.reset { background: #2e1a1a; color: #fc8181; }
+
+    /* Bottom control rail */
+    #bottombar {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 0 16px;
+    }
+
+    .ctrl-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #b0b3b8;
+    }
+    .ctrl-key {
+      background: #1C1E21;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: #e4e6eb;
+      font-weight: 600;
+    }
+
+    /* Loading screen */
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: #000;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #1C1E21;
+      border-top-color: #63b3ed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-label {
+      font-size: 14px;
+      color: #b0b3b8;
+    }
+
+    /* Focus ring for interactive elements */
+    .focusable {
+      outline: none;
+      transition: transform 475ms cubic-bezier(0.6, 0, 0.4, 1),
+                  box-shadow 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
+    }
+    .focusable:focus {
+      transform: scale(0.91);
+      box-shadow: 0 0 0 2px #63b3ed;
+    }
+
+    /* Toast */
+    #toast {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1C1E21;
+      color: #e4e6eb;
+      font-size: 13px;
+      padding: 8px 20px;
+      border-radius: 24px;
+      opacity: 0;
+      transition: opacity 200ms;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* D-pad visual indicator (shows active direction) */
+    #dpad-indicator {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: grid;
+      grid-template-columns: 20px 20px 20px;
+      grid-template-rows: 20px 20px 20px;
+      gap: 2px;
+      opacity: 0.35;
+    }
+    .dpad-btn {
+      background: #1C1E21;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #e4e6eb;
+      transition: background 100ms, opacity 100ms;
+    }
+    .dpad-btn.active { background: #2d4a6e; opacity: 1; }
+    .dpad-center { background: #1C1E21; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-label">Loading model…</div>
+  </div>
+
+  <!-- Top bar: model name + mode -->
+  <div id="topbar" class="surface" style="display:none">
+    <span id="model-name">L-39 Skyfox</span>
+    <span id="mode-badge" class="focusable" tabindex="0" data-action="cycle-mode">ROTATE</span>
+  </div>
+
+  <!-- D-pad visual -->
+  <div id="dpad-indicator" style="display:none">
+    <div></div>
+    <div class="dpad-btn" id="dp-up">▲</div>
+    <div></div>
+    <div class="dpad-btn" id="dp-left">◀</div>
+    <div class="dpad-btn dpad-center" id="dp-enter">●</div>
+    <div class="dpad-btn" id="dp-right">▶</div>
+    <div></div>
+    <div class="dpad-btn" id="dp-down">▼</div>
+    <div></div>
+  </div>
+
+  <!-- Bottom bar: control hints -->
+  <div id="bottombar" class="surface" style="display:none">
+    <span class="ctrl-hint">
+      <span class="ctrl-key">← →</span> rotate
+    </span>
+    <span class="ctrl-hint">
+      <span class="ctrl-key">↑ ↓</span> tilt
+    </span>
+    <span class="ctrl-hint">
+      <span class="ctrl-key">Enter</span> mode
+    </span>
+    <span class="ctrl-hint">
+      <span class="ctrl-key">Esc</span> reset
+    </span>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { PMREMGenerator } from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ── Renderer ──────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(600, 600);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x000000, 0); // transparent
+document.getElementById('app').insertBefore(renderer.domElement, document.getElementById('loading'));
+
+// ── Scene ─────────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(40, 1, 0.001, 1000);
+camera.position.set(0, 2, 8);
+
+// ── Lighting ──────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+dirLight.position.set(5, 10, 7);
+scene.add(dirLight);
+const rimLight = new THREE.DirectionalLight(0x8ab4f8, 0.8);
+rimLight.position.set(-5, 2, -5);
+scene.add(rimLight);
+
+const pmrem = new PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+// ── Loader ────────────────────────────────────────────────────────────────────
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/libs/draco/');
+const gltf = new GLTFLoader();
+gltf.setDRACOLoader(draco);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const MODES = ['ROTATE', 'ZOOM', 'RESET'];
+let modeIndex = 0;
+
+const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
+let model = null;
+let modelCenter = new THREE.Vector3();
+let modelRadius = 1;
+let camTheta = 0;   // horizontal angle (radians)
+let camPhi = 0.3;   // vertical angle (radians)
+let camDist = 8;
+
+const ROTATE_SPEED = 0.022;
+const ZOOM_SPEED   = 0.08;
+const PHI_MIN = -1.1;
+const PHI_MAX =  1.1;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const loadingEl  = document.getElementById('loading');
+const topbarEl   = document.getElementById('topbar');
+const bottomEl   = document.getElementById('bottombar');
+const dpadEl     = document.getElementById('dpad-indicator');
+const modeBadge  = document.getElementById('mode-badge');
+const toastEl    = document.getElementById('toast');
+
+let toastTimer = null;
+
+function showToast(msg, duration = 1800) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+}
+
+function setMode(idx) {
+  modeIndex = idx % MODES.length;
+  const label = MODES[modeIndex];
+  modeBadge.textContent = label;
+  modeBadge.className = 'focusable ' + label.toLowerCase().replace('rotace', '').replace('zoom', 'zoom').replace('reset', 'reset');
+  if (label === 'ROTATE') modeBadge.className = 'focusable';
+  if (label === 'ZOOM')   modeBadge.className = 'focusable zoom';
+  if (label === 'RESET')  { modeBadge.className = 'focusable reset'; resetCamera(); }
+  showToast(label === 'ROTATE' ? '↔ Rotate' : label === 'ZOOM' ? '⇅ Zoom' : '⟳ Reset view');
+}
+
+function resetCamera() {
+  camTheta = 0;
+  camPhi   = 0.3;
+  camDist  = modelRadius * 2.5;
+}
+
+// ── Camera positioning from spherical coords ──────────────────────────────────
+function updateCamera() {
+  const x = modelCenter.x + camDist * Math.cos(camPhi) * Math.sin(camTheta);
+  const y = modelCenter.y + camDist * Math.sin(camPhi);
+  const z = modelCenter.z + camDist * Math.cos(camPhi) * Math.cos(camTheta);
+  camera.position.set(x, y, z);
+  camera.lookAt(modelCenter);
+}
+
+// ── Load model ────────────────────────────────────────────────────────────────
+gltf.load('model/scene.gltf', loaded => {
+  model = loaded.scene;
+  scene.add(model);
+
+  const box = new THREE.Box3().setFromObject(model);
+  box.getCenter(modelCenter);
+  modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
+  camDist = modelRadius * 2.5;
+  camTheta = 0;
+  camPhi   = 0.2;
+
+  loadingEl.style.display  = 'none';
+  topbarEl.style.display    = 'flex';
+  bottomEl.style.display    = 'flex';
+  dpadEl.style.display      = 'grid';
+
+  showToast('Loaded — use D-pad to navigate', 2500);
+  updateCamera();
+}, undefined, err => {
+  document.getElementById('loading-label').textContent = 'Error: ' + (err.message || err);
+  console.error(err);
+});
+
+// ── D-pad visual feedback ─────────────────────────────────────────────────────
+function flashDpad(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('active');
+  setTimeout(() => el.classList.remove('active'), 120);
+}
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => {
+  if (e.key in keys) { keys[e.key] = true; e.preventDefault(); }
+
+  if (e.key === 'Enter') {
+    setMode(modeIndex + 1);
+    flashDpad('dp-enter');
+  }
+  if (e.key === 'Escape') {
+    resetCamera();
+    showToast('⟳ Reset view');
+  }
+  // D-pad flash on press
+  const dpadMap = { ArrowLeft: 'dp-left', ArrowRight: 'dp-right', ArrowUp: 'dp-up', ArrowDown: 'dp-down' };
+  if (dpadMap[e.key]) flashDpad(dpadMap[e.key]);
+});
+
+window.addEventListener('keyup', e => {
+  if (e.key in keys) keys[e.key] = false;
+});
+
+// ── Render loop ───────────────────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (model) {
+    const mode = MODES[modeIndex];
+
+    if (mode === 'ROTATE') {
+      if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED;
+      if (keys.ArrowRight) camTheta += ROTATE_SPEED;
+      if (keys.ArrowUp)    camPhi = Math.min(PHI_MAX, camPhi + ROTATE_SPEED);
+      if (keys.ArrowDown)  camPhi = Math.max(PHI_MIN, camPhi - ROTATE_SPEED);
+    } else if (mode === 'ZOOM') {
+      const minDist = modelRadius * 0.5;
+      const maxDist = modelRadius * 6;
+      if (keys.ArrowUp)   camDist = Math.max(minDist, camDist - ZOOM_SPEED * modelRadius * 0.1);
+      if (keys.ArrowDown) camDist = Math.min(maxDist, camDist + ZOOM_SPEED * modelRadius * 0.1);
+      if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED * 0.5;
+      if (keys.ArrowRight) camTheta += ROTATE_SPEED * 0.5;
+    }
+
+    updateCamera();
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
