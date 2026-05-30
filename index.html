@@ -311,6 +311,15 @@
 </script>
 
 <script type="module">
+window.addEventListener('error', e => {
+  document.getElementById('error-bar').textContent = 'JS Error: ' + e.message;
+  document.getElementById('error-bar').style.display = 'block';
+});
+window.addEventListener('unhandledrejection', e => {
+  document.getElementById('error-bar').textContent = 'Async Error: ' + (e.reason?.message || e.reason);
+  document.getElementById('error-bar').style.display = 'block';
+});
+
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -388,7 +397,7 @@ function showToast(msg, duration = 1800) {
 function showError(msg) {
   errorBar.textContent = msg;
   errorBar.style.display = 'block';
-  setTimeout(() => errorBar.style.display = 'none', 6000);
+  // Don't auto-hide — user must tap to dismiss
 }
 
 function showViewer(name) {
