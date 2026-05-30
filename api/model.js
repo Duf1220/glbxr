@@ -1,3 +1,5 @@
+const { presignUrl } = require('@vercel/blob');
+
 const BLOB_URL = 'https://ts9k0yjegcacnjcs.private.blob.vercel-storage.com/l39_skyfox.glb';
 
 module.exports = async function handler(req, res) {
@@ -8,31 +10,20 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  let upstream;
   try {
-    upstream = await fetch(BLOB_URL, {
-      headers: { Authorization: `Bearer ${token}` },
+    const signed = await presignUrl(BLOB_URL, {
+      token,
+      expiresIn: 300, // 5 minutes
     });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store');
+    res.statusCode = 302;
+    res.setHeader('Location', signed);
+    res.end();
   } catch (e) {
-    console.error('Fetch error:', e.message);
-    res.statusCode = 502;
+    console.error('presignUrl error:', e.message);
+    res.statusCode = 500;
     res.end(e.message);
-    return;
   }
-
-  if (!upstream.ok) {
-    console.error('Blob status:', upstream.status);
-    res.statusCode = 502;
-    res.end('Blob returned ' + upstream.status);
-    return;
-  }
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Type', 'model/gltf-binary');
-  const len = upstream.headers.get('content-length');
-  if (len) res.setHeader('Content-Length', len);
-
-  const { Readable } = require('stream');
-  Readable.fromWeb(upstream.body).pipe(res);
 };
