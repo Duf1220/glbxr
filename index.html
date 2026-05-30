@@ -355,6 +355,7 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 // ── Loaders ───────────────────────────────────────────────────────────────────
 const draco = new DRACOLoader();
 draco.setDecoderPath('/draco/');
+draco.setDecoderConfig({ type: 'js' }); // JS decoder — no WASM, broader compatibility
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
