@@ -265,7 +265,7 @@
       <span>.glb · .gltf supported</span>
     </div>
     <input type="file" id="file-input" accept=".glb,.gltf" />
-    <input id="url-input" type="hidden" value="/api/glb" />
+    <input id="url-input" type="hidden" value="/l39_skyfox.glb" />
   </div>
 
   <!-- Loading -->
@@ -476,7 +476,7 @@ function loadFromFile(file) {
 
 // ── URL input ─────────────────────────────────────────────────────────────────
 document.getElementById('load-url-btn').addEventListener('click', () => {
-  const url = urlInput.value.trim() || '/api/glb';
+  const url = urlInput.value.trim() || '/l39_skyfox.glb';
   loadFromUrl(url);
 });
 
