@@ -4,307 +4,275 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=600, height=600, initial-scale=1.0" />
   <title>GLB Viewer — Meta Display Glasses</title>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html, body {
-      width: 600px; height: 600px;
-      overflow: hidden;
-      background: #000;
-      font-family: system-ui, -apple-system, sans-serif;
-      color: #fff;
-      user-select: none;
-    }
-
+    html, body { width: 600px; height: 600px; overflow: hidden; background: #000;
+      font-family: system-ui, -apple-system, sans-serif; color: #fff; user-select: none; }
     #app { width: 600px; height: 600px; position: relative; }
+    canvas { position: absolute; inset: 0; display: block; }
 
-    /* ── Welcome screen ─────────────────────────────── */
-    #welcome {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px; padding: 24px;
-      background: #000;
-    }
+    #welcome { position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px; padding: 24px; background: #000; }
     #welcome h1 { font-size: 22px; font-weight: 700; color: #e4e6eb; }
-    #welcome .model-label { font-size: 14px; color: #718096; }
+    #welcome .sub { font-size: 14px; color: #718096; }
 
-    #load-btn {
-      width: 100%; height: 88px;
-      background: #1c2a3a; color: #63b3ed;
-      border: 2px solid #2d4a6e; border-radius: 16px;
-      font-size: 18px; font-weight: 700;
-      cursor: pointer; letter-spacing: 0.04em;
-      transition: transform 475ms cubic-bezier(0.6,0,0.4,1),
-                  background 300ms cubic-bezier(0.4,0.04,0.5,1),
-                  border-color 300ms;
-      outline: none;
-    }
-    #load-btn:focus {
-      transform: scale(0.91);
-      background: #1e3a5f; border-color: #63b3ed;
-      box-shadow: 0 0 0 2px #63b3ed44;
-    }
+    #load-btn { width: 100%; height: 88px; background: #1c2a3a; color: #63b3ed;
+      border: 2px solid #2d4a6e; border-radius: 16px; font-size: 18px; font-weight: 700;
+      cursor: pointer; outline: none;
+      transition: transform 475ms cubic-bezier(0.6,0,0.4,1), background 300ms; }
+    #load-btn:focus { transform: scale(0.91); background: #1e3a5f; border-color: #63b3ed; }
 
-    .desktop-only { width: 100%; }
-    #drop-zone {
-      width: 100%; border: 1px dashed #2d3748; border-radius: 8px;
-      padding: 16px; text-align: center; color: #4a5568;
-      font-size: 13px; cursor: pointer;
-      transition: border-color 150ms, color 150ms;
-    }
+    .divider { display: flex; align-items: center; gap: 12px; width: 100%; color: #4a5568; font-size: 12px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #2d3748; }
+    #drop-zone { width: 100%; border: 1px dashed #2d3748; border-radius: 8px; padding: 16px;
+      text-align: center; color: #4a5568; font-size: 13px; cursor: pointer; }
     #drop-zone:hover, #drop-zone.dragover { border-color: #63b3ed; color: #63b3ed; }
-    #drop-zone span { display: block; font-size: 11px; margin-top: 4px; color: #4a5568; }
+    #drop-zone span { display: block; font-size: 11px; margin-top: 4px; }
     #file-input { display: none; }
-    .divider {
-      display: flex; align-items: center; gap: 12px;
-      width: 100%; color: #4a5568; font-size: 12px;
-    }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: #2d3748;
-    }
-    .pinch-hint { font-size: 11px; color: #4a5568; text-align: center; }
+    .hint { font-size: 11px; color: #4a5568; text-align: center; }
 
-    /* ── Loading ────────────────────────────────────── */
-    #loading {
-      position: absolute; inset: 0;
-      display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px;
-      background: #000;
-    }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid #1C1E21; border-top-color: #63b3ed;
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
+    #loading { position: absolute; inset: 0; display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px; background: #000; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #1C1E21;
+      border-top-color: #63b3ed; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #loading-label { font-size: 14px; color: #b0b3b8; }
 
-    /* ── Viewer ─────────────────────────────────────── */
-    #viewer { position: absolute; inset: 0; display: none; }
+    #topbar { position: absolute; top: 8px; left: 8px; right: 8px; height: 48px;
+      display: none; align-items: center; justify-content: space-between; padding: 0 16px;
+      background: #0a0a0f; border-radius: 12px; }
+    #model-name { font-size: 15px; font-weight: 700; opacity: 0.9;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+    #mode-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      background: #1c2a3a; color: #63b3ed; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; }
+    #mode-badge.zoom { background: #1a2e1a; color: #68d391; }
+    #back-btn { font-size: 18px; background: none; border: none; color: #718096; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
 
-    model-viewer {
-      width: 600px; height: 600px;
-      background-color: transparent;
-      --poster-color: transparent;
-    }
-
-    /* Top bar */
-    #topbar {
-      position: absolute; top: 8px; left: 8px; right: 8px;
-      height: 48px; display: none;
-      align-items: center; justify-content: space-between;
-      padding: 0 16px;
-      background: #0a0a0f; border-radius: 12px;
-    }
-    #model-name { font-size: 15px; font-weight: 700; color: #fff; opacity: 0.9; }
-    #back-btn {
-      font-size: 18px; background: none; border: none;
-      color: #718096; cursor: pointer; padding: 4px 8px; border-radius: 6px;
-    }
-    #back-btn:hover { color: #e4e6eb; }
-
-    /* Bottom bar */
-    #bottombar {
-      position: absolute; bottom: 8px; left: 8px; right: 8px;
-      height: 48px; display: none;
-      align-items: center; justify-content: center; gap: 20px;
-      padding: 0 16px;
-      background: #0a0a0f; border-radius: 12px;
-    }
+    #bottombar { position: absolute; bottom: 8px; left: 8px; right: 8px; height: 48px;
+      display: none; align-items: center; justify-content: center; gap: 20px; padding: 0 16px;
+      background: #0a0a0f; border-radius: 12px; }
     .ctrl-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b0b3b8; }
-    .ctrl-key {
-      background: #1C1E21; border: 1px solid #333; border-radius: 4px;
-      padding: 2px 6px; font-size: 11px; color: #e4e6eb; font-weight: 600;
-    }
+    .ctrl-key { background: #1C1E21; border: 1px solid #333; border-radius: 4px;
+      padding: 2px 6px; font-size: 11px; color: #e4e6eb; font-weight: 600; }
 
-    /* Toast */
-    #toast {
-      position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
-      background: #1C1E21; color: #e4e6eb; font-size: 13px;
-      padding: 8px 20px; border-radius: 24px;
-      opacity: 0; transition: opacity 200ms;
-      pointer-events: none; white-space: nowrap;
-    }
+    #dpad { position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      display: none; grid-template-columns: 20px 20px 20px; grid-template-rows: 20px 20px 20px;
+      gap: 2px; opacity: 0.35; }
+    .db { background: #1C1E21; border-radius: 4px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; color: #e4e6eb; transition: background 100ms; }
+    .db.active { background: #2d4a6e; opacity: 1; }
+
+    #toast { position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
+      background: #1C1E21; color: #e4e6eb; font-size: 13px; padding: 8px 20px;
+      border-radius: 24px; opacity: 0; transition: opacity 200ms; pointer-events: none; white-space: nowrap; }
     #toast.show { opacity: 1; }
 
-    /* Error */
-    #error-bar {
-      position: absolute; top: 50%; left: 24px; right: 24px;
-      transform: translateY(-50%);
-      background: #742a2a; color: #fed7d7; font-size: 13px;
-      padding: 10px 16px; border-radius: 8px;
-      display: none; text-align: center; line-height: 1.6;
-      z-index: 100;
-    }
+    #error-bar { position: absolute; top: 50%; left: 16px; right: 16px; transform: translateY(-50%);
+      background: #742a2a; color: #fed7d7; font-size: 13px; padding: 12px 16px;
+      border-radius: 8px; display: none; text-align: center; line-height: 1.6; z-index: 100; }
   </style>
 </head>
 <body>
 <div id="app">
-
-  <!-- Welcome -->
   <div id="welcome">
     <h1>GLB Viewer</h1>
-    <p class="model-label">L-39 Skyfox</p>
+    <p class="sub">L-39 Skyfox</p>
     <button id="load-btn" tabindex="0">⟳ Load model</button>
-    <p class="pinch-hint">Pinch to confirm · D-pad to rotate after loading</p>
-    <div class="divider desktop-only">or drop a file</div>
-    <div id="drop-zone" class="desktop-only">
-      📂 Click to browse or drag & drop
-      <span>.glb · .gltf supported</span>
-    </div>
+    <p class="hint">Pinch to confirm · D-pad to navigate</p>
+    <div class="divider">or drop a file</div>
+    <div id="drop-zone">📂 Click to browse or drag & drop<span>.glb · .gltf</span></div>
     <input type="file" id="file-input" accept=".glb,.gltf" />
   </div>
 
-  <!-- Loading -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <div id="loading-label">Loading model…</div>
-  </div>
+  <div id="loading"><div class="spinner"></div><div id="loading-label">Loading…</div></div>
 
-  <!-- Viewer -->
-  <div id="viewer">
-    <model-viewer
-      id="mv"
-      src="/l39_skyfox.glb"
-      alt="L-39 Skyfox"
-      camera-controls
-      auto-rotate
-      auto-rotate-delay="0"
-      rotation-per-second="20deg"
-      shadow-intensity="0"
-      exposure="1"
-      tone-mapping="commerce"
-    ></model-viewer>
-  </div>
-
-  <!-- HUD -->
   <div id="topbar">
     <button id="back-btn">←</button>
-    <span id="model-name">L-39 Skyfox</span>
+    <span id="model-name"></span>
+    <span id="mode-badge">ROTATE</span>
+  </div>
+  <div id="dpad">
+    <div></div><div class="db" id="dp-up">▲</div><div></div>
+    <div class="db" id="dp-left">◀</div><div class="db" id="dp-center">●</div><div class="db" id="dp-right">▶</div>
+    <div></div><div class="db" id="dp-down">▼</div><div></div>
   </div>
   <div id="bottombar">
     <span class="ctrl-hint"><span class="ctrl-key">← →</span> rotate</span>
     <span class="ctrl-hint"><span class="ctrl-key">↑ ↓</span> tilt</span>
-    <span class="ctrl-hint"><span class="ctrl-key">+  −</span> zoom</span>
+    <span class="ctrl-hint"><span class="ctrl-key">Enter</span> mode</span>
+    <span class="ctrl-hint"><span class="ctrl-key">Esc</span> reset</span>
   </div>
-
   <div id="toast"></div>
   <div id="error-bar"></div>
 </div>
 
+<script type="importmap">
+{"imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"
+}}
+</script>
 <script type="module">
+window.addEventListener('error', e => showError('JS Error: ' + e.message));
+window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reason?.message || e.reason)));
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ── Renderer (minimal settings for glasses) ───────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' });
+renderer.setPixelRatio(1);
+renderer.setSize(600, 600);
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x000000, 0);
+document.getElementById('app').insertBefore(renderer.domElement, document.getElementById('welcome'));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.001, 1000);
+
+// Simple lighting — no env maps (saves memory)
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dir = new THREE.DirectionalLight(0xffffff, 2);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+const rim = new THREE.DirectionalLight(0x8ab4f8, 0.6);
+rim.position.set(-5, 2, -5);
+scene.add(rim);
+
+// Draco with local JS decoder
+const draco = new DRACOLoader();
+draco.setDecoderPath('/draco/');
+draco.setDecoderConfig({ type: 'js' });
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(draco);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const MODES = ['ROTATE','ZOOM','RESET'];
+let modeIdx = 0, currentModel = null;
+let camTheta = 0, camPhi = 0.3, camDist = 8, modelCenter = new THREE.Vector3(), modelRadius = 1;
+const keys = {ArrowLeft:false,ArrowRight:false,ArrowUp:false,ArrowDown:false};
+const ROT = 0.022, ZOOM = 0.08;
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
 const welcomeEl = document.getElementById('welcome');
 const loadingEl = document.getElementById('loading');
-const viewerEl  = document.getElementById('viewer');
 const topbarEl  = document.getElementById('topbar');
 const bottomEl  = document.getElementById('bottombar');
+const dpadEl    = document.getElementById('dpad');
 const errorBar  = document.getElementById('error-bar');
-const mv        = document.getElementById('mv');
-const loadBtn   = document.getElementById('load-btn');
-const backBtn   = document.getElementById('back-btn');
-const fileInput = document.getElementById('file-input');
-const dropZone  = document.getElementById('drop-zone');
 const toastEl   = document.getElementById('toast');
+let toastT = null;
 
-let toastTimer = null;
-function showToast(msg, ms = 2000) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+function showToast(msg, ms=2000) {
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
-
-function showError(msg) {
-  errorBar.innerHTML = msg;
-  errorBar.style.display = 'block';
-}
+function showError(msg) { errorBar.innerHTML = msg; errorBar.style.display = 'block'; }
+function flash(id) { const el = document.getElementById(id); if(!el) return; el.classList.add('active'); setTimeout(()=>el.classList.remove('active'),120); }
 
 function showWelcome() {
-  welcomeEl.style.display = 'flex';
-  loadingEl.style.display = 'none';
-  viewerEl.style.display  = 'none';
-  topbarEl.style.display  = 'none';
-  bottomEl.style.display  = 'none';
+  welcomeEl.style.display = 'flex'; loadingEl.style.display = 'none';
+  topbarEl.style.display = 'none'; bottomEl.style.display = 'none'; dpadEl.style.display = 'none';
+}
+function showViewer(name) {
+  welcomeEl.style.display = 'none'; loadingEl.style.display = 'none';
+  topbarEl.style.display = 'flex'; bottomEl.style.display = 'flex'; dpadEl.style.display = 'grid';
+  document.getElementById('model-name').textContent = name;
+  showToast('Loaded · D-pad to navigate', 3000);
 }
 
-function showViewer(name) {
-  welcomeEl.style.display = 'none';
-  loadingEl.style.display = 'none';
-  viewerEl.style.display  = 'block';
-  topbarEl.style.display  = 'flex';
-  bottomEl.style.display  = 'flex';
-  document.getElementById('model-name').textContent = name;
-  showToast('Loaded · use D-pad to rotate', 3000);
+function setMode(i) {
+  modeIdx = i % MODES.length;
+  const m = MODES[modeIdx];
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = m;
+  badge.className = m === 'ZOOM' ? 'zoom' : '';
+  if (m === 'RESET') resetCamera();
+  showToast(m === 'ROTATE' ? '↔ Rotate' : m === 'ZOOM' ? '⇅ Zoom' : '⟳ Reset');
+}
+function resetCamera() { camTheta=0; camPhi=0.3; camDist=modelRadius*2.5; }
+
+function updateCamera() {
+  camera.position.set(
+    modelCenter.x + camDist*Math.cos(camPhi)*Math.sin(camTheta),
+    modelCenter.y + camDist*Math.sin(camPhi),
+    modelCenter.z + camDist*Math.cos(camPhi)*Math.cos(camTheta)
+  );
+  camera.lookAt(modelCenter);
+}
+
+function onLoaded(gltf, name) {
+  if (currentModel) scene.remove(currentModel);
+  currentModel = gltf.scene;
+  scene.add(currentModel);
+  const box = new THREE.Box3().setFromObject(currentModel);
+  box.getCenter(modelCenter);
+  modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
+  camDist = modelRadius * 2.5; camTheta = 0; camPhi = 0.2;
+  updateCamera();
+  showViewer(name);
 }
 
 function loadUrl(url, name) {
-  welcomeEl.style.display = 'none';
-  loadingEl.style.display = 'flex';
-  errorBar.style.display  = 'none';
-  document.getElementById('loading-label').textContent = 'Loading model…';
-
-  mv.src = url;
-  mv.addEventListener('load', () => showViewer(name), { once: true });
-  mv.addEventListener('error', e => {
-    showWelcome();
-    showError('Failed to load model.<br>' + (e.detail?.sourceError?.message || url));
-  }, { once: true });
+  welcomeEl.style.display = 'none'; loadingEl.style.display = 'flex';
+  document.getElementById('loading-label').textContent = 'Loading…';
+  gltfLoader.load(url,
+    gltf => onLoaded(gltf, name),
+    xhr => { if (xhr.total) document.getElementById('loading-label').textContent = 'Loading… ' + Math.round(xhr.loaded/xhr.total*100) + '%'; },
+    err => { showWelcome(); showError('Failed: ' + (err.message || String(err))); }
+  );
 }
-
 function loadFile(file) {
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
-  if (ext !== 'glb' && ext !== 'gltf') { showError('Only .glb and .gltf files are supported.'); return; }
-  loadUrl(URL.createObjectURL(file), file.name);
+  if (ext!=='glb' && ext!=='gltf') { showError('Only .glb / .gltf'); return; }
+  const url = URL.createObjectURL(file);
+  loadUrl(url, file.name);
 }
 
-// Load button
-loadBtn.addEventListener('click', () => loadUrl('/l39_skyfox.glb', 'L-39 Skyfox'));
-loadBtn.focus();
-
-// Back button
-backBtn.addEventListener('click', showWelcome);
-
-// File picker
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); });
-
-// D-pad control of model-viewer
-const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-let theta = 0, phi = 80, radius = null;
-
-function applyCamera() {
-  mv.cameraOrbit = `${theta}deg ${phi}deg ${radius || 'auto'}`;
-}
+document.getElementById('load-btn').addEventListener('click', () => loadUrl('/l39_skyfox.glb', 'L-39 Skyfox'));
+document.getElementById('load-btn').focus();
+document.getElementById('back-btn').addEventListener('click', showWelcome);
+document.getElementById('drop-zone').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change', e => loadFile(e.target.files[0]));
+document.getElementById('drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.target.classList.add('dragover'); });
+document.getElementById('drop-zone').addEventListener('dragleave', e => e.target.classList.remove('dragover'));
+document.getElementById('drop-zone').addEventListener('drop', e => { e.preventDefault(); e.target.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { e.preventDefault(); if (currentModel) loadFile(e.dataTransfer.files[0]); });
 
 window.addEventListener('keydown', e => {
-  if (viewerEl.style.display === 'none') return;
-  if (e.key in keys) { keys[e.key] = true; e.preventDefault(); }
-  if (e.key === 'Escape') { showWelcome(); }
+  if (e.key in keys) { keys[e.key]=true; e.preventDefault(); }
+  if (e.key==='Enter' && currentModel) { setMode(modeIdx+1); flash('dp-center'); }
+  if (e.key==='Escape' && currentModel) { resetCamera(); showToast('⟳ Reset'); }
+  const m={ArrowLeft:'dp-left',ArrowRight:'dp-right',ArrowUp:'dp-up',ArrowDown:'dp-down'};
+  if (m[e.key]) flash(m[e.key]);
 });
-window.addEventListener('keyup', e => { if (e.key in keys) keys[e.key] = false; });
+window.addEventListener('keyup', e => { if (e.key in keys) keys[e.key]=false; });
 
-// Animate D-pad rotation
-function tick() {
-  if (viewerEl.style.display !== 'none') {
-    const speed = 1.5;
-    if (keys.ArrowLeft)  { theta -= speed; applyCamera(); }
-    if (keys.ArrowRight) { theta += speed; applyCamera(); }
-    if (keys.ArrowUp)    { phi = Math.max(10, phi - speed); applyCamera(); }
-    if (keys.ArrowDown)  { phi = Math.min(170, phi + speed); applyCamera(); }
+function animate() {
+  requestAnimationFrame(animate);
+  if (currentModel && topbarEl.style.display!=='none') {
+    const mode = MODES[modeIdx];
+    if (mode==='ROTATE') {
+      if (keys.ArrowLeft)  camTheta -= ROT;
+      if (keys.ArrowRight) camTheta += ROT;
+      if (keys.ArrowUp)    camPhi = Math.min(1.1, camPhi+ROT);
+      if (keys.ArrowDown)  camPhi = Math.max(-1.1, camPhi-ROT);
+    } else if (mode==='ZOOM') {
+      if (keys.ArrowUp)   camDist = Math.max(modelRadius*.5, camDist-ZOOM*modelRadius*.1);
+      if (keys.ArrowDown) camDist = Math.min(modelRadius*6, camDist+ZOOM*modelRadius*.1);
+      if (keys.ArrowLeft)  camTheta -= ROT*.5;
+      if (keys.ArrowRight) camTheta += ROT*.5;
+    }
+    updateCamera();
   }
-  requestAnimationFrame(tick);
+  renderer.render(scene, camera);
 }
-tick();
-
-// Global error catch
-window.addEventListener('error', e => showError('Error: ' + e.message));
-window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reason?.message || e.reason)));
+animate();
 </script>
 </body>
 </html>
