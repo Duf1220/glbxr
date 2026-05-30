@@ -3,7 +3,7 @@ const https = require('https');
 const BLOB_URL = 'https://ts9k0yjegcacnjcs.private.blob.vercel-storage.com/l39_skyfox.glb';
 
 module.exports = function handler(req, res) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  const token = (process.env.BLOB_READ_WRITE_TOKEN || '').trim();
   if (!token) {
     res.statusCode = 500;
     res.end(JSON.stringify({ error: 'Storage not configured' }));
