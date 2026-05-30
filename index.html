@@ -30,7 +30,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 20px;
       padding: 24px;
       background: #000;
     }
@@ -39,25 +39,50 @@
       font-size: 22px;
       font-weight: 700;
       color: #e4e6eb;
-      margin-bottom: 4px;
     }
 
-    #welcome p {
-      font-size: 13px;
+    #welcome .model-label {
+      font-size: 14px;
       color: #718096;
       text-align: center;
-      line-height: 1.5;
-      margin-bottom: 4px;
     }
 
-    .input-row {
+    /* Big load button — primary glasses interaction target */
+    #load-url-btn {
       width: 100%;
-      display: flex;
-      gap: 8px;
+      height: 88px; /* minimum tap target per display guidelines */
+      background: #1c2a3a;
+      color: #63b3ed;
+      border: 2px solid #2d4a6e;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition:
+        transform 475ms cubic-bezier(0.6, 0, 0.4, 1),
+        background 300ms cubic-bezier(0.4, 0.04, 0.5, 1),
+        border-color 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
+      outline: none;
+    }
+    #load-url-btn:focus {
+      transform: scale(0.91);
+      background: #1e3a5f;
+      border-color: #63b3ed;
+      box-shadow: 0 0 0 2px #63b3ed44;
+    }
+    #load-url-btn:active {
+      transform: scale(0.93);
+      transition-duration: 100ms;
+    }
+
+    /* Desktop extras — hidden on glasses (no useful input method) */
+    .desktop-only {
+      width: 100%;
     }
 
     #url-input {
-      flex: 1;
+      width: 100%;
       background: #1C1E21;
       border: 1px solid #2d3748;
       border-radius: 8px;
@@ -66,25 +91,10 @@
       color: #e4e6eb;
       outline: none;
       transition: border-color 200ms;
+      box-sizing: border-box;
     }
     #url-input:focus { border-color: #63b3ed; }
     #url-input::placeholder { color: #4a5568; }
-
-    .btn {
-      background: #2d4a6e;
-      color: #e4e6eb;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 150ms;
-      white-space: nowrap;
-    }
-    .btn:hover, .btn:focus { background: #3a5f8a; outline: none; }
-    .btn.primary { background: #2b6cb0; }
-    .btn.primary:hover { background: #3182ce; }
 
     .divider {
       display: flex;
@@ -105,7 +115,7 @@
       width: 100%;
       border: 1px dashed #2d3748;
       border-radius: 8px;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
       color: #4a5568;
       font-size: 13px;
@@ -117,6 +127,12 @@
       color: #63b3ed;
     }
     #drop-zone span { display: block; font-size: 11px; margin-top: 4px; color: #4a5568; }
+
+    #welcome .pinch-hint {
+      font-size: 11px;
+      color: #4a5568;
+      text-align: center;
+    }
 
     #file-input { display: none; }
 
@@ -235,21 +251,21 @@
 
   <!-- Welcome screen -->
   <div id="welcome">
-    <h1>GLB / GLTF Viewer</h1>
-    <p>Paste a direct link to a <b>.glb</b> or <b>.gltf</b> file, or drop a file from your computer.</p>
+    <h1>GLB Viewer</h1>
+    <p class="model-label">L-39 Skyfox</p>
 
-    <div class="input-row">
-      <input id="url-input" type="url" placeholder="https://example.com/model.glb" autocomplete="off" spellcheck="false" />
-      <button class="btn primary" id="load-url-btn">Load</button>
-    </div>
+    <button id="load-url-btn" tabindex="0">⟳ Load model</button>
 
-    <div class="divider">or</div>
+    <p class="pinch-hint">Pinch to confirm · D-pad to navigate after loading</p>
 
-    <div id="drop-zone">
-      📂 Click to browse or drag & drop a file
+    <div class="divider desktop-only">or drop a file</div>
+
+    <div id="drop-zone" class="desktop-only">
+      📂 Click to browse or drag & drop
       <span>.glb · .gltf supported</span>
     </div>
     <input type="file" id="file-input" accept=".glb,.gltf" />
+    <input id="url-input" type="hidden" value="/api/model" />
   </div>
 
   <!-- Loading -->
@@ -460,11 +476,9 @@ function loadFromFile(file) {
 
 // ── URL input ─────────────────────────────────────────────────────────────────
 document.getElementById('load-url-btn').addEventListener('click', () => {
-  const url = urlInput.value.trim();
-  if (!url) { urlInput.focus(); return; }
+  const url = urlInput.value.trim() || '/api/model';
   loadFromUrl(url);
 });
-urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('load-url-btn').click(); });
 
 // ── File picker ───────────────────────────────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
@@ -487,11 +501,10 @@ backBtn.addEventListener('click', showWelcome);
 const params = new URLSearchParams(location.search);
 if (params.get('url')) {
   urlInput.value = params.get('url');
-  loadFromUrl(params.get('url'));
-} else {
-  // Auto-load model from secure proxy
-  loadFromUrl('/api/model');
 }
+
+// Auto-focus Load button so pinch works immediately
+document.getElementById('load-url-btn').focus();
 
 // ── D-pad feedback ────────────────────────────────────────────────────────────
 function flashDpad(id) {
