@@ -21,6 +21,10 @@
 {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js"}}
 </script>
 <script type="module">
+// Initialize Vercel Web Analytics
+import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/+esm';
+inject();
+
 const info = document.getElementById('info');
 try {
   info.textContent = 'Importing Three.js…';
