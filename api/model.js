@@ -5,18 +5,16 @@ const BLOB_URL = 'https://ts9k0yjegcacnjcs.private.blob.vercel-storage.com/l39_s
 module.exports = function handler(req, res) {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    res.status(500).json({ error: 'Storage not configured' });
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: 'Storage not configured' }));
     return;
   }
 
-  const opts = {
-    headers: { Authorization: 'Bearer ' + token },
-  };
-
-  https.get(BLOB_URL, opts, upstream => {
+  https.get(BLOB_URL, { headers: { Authorization: 'Bearer ' + token } }, upstream => {
     if (upstream.statusCode !== 200) {
       console.error('Blob status:', upstream.statusCode);
-      res.status(502).json({ error: 'Blob returned ' + upstream.statusCode });
+      res.statusCode = 502;
+      res.end(JSON.stringify({ error: 'Blob returned ' + upstream.statusCode }));
       return;
     }
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,6 +26,7 @@ module.exports = function handler(req, res) {
     upstream.pipe(res);
   }).on('error', err => {
     console.error('Fetch error:', err.message);
-    res.status(502).json({ error: err.message });
+    res.statusCode = 502;
+    res.end(JSON.stringify({ error: err.message }));
   });
 };
