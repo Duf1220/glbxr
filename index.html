@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=600, height=600, initial-scale=1.0" />
   <title>GLB Viewer — Meta Display Glasses</title>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -18,184 +19,99 @@
 
     #app { width: 600px; height: 600px; position: relative; }
 
-    canvas { position: absolute; inset: 0; display: block; }
-
-    .surface { background: #0a0a0f; border-radius: 12px; }
-
-    /* ── Welcome screen ───────────────────────────────────────────── */
+    /* ── Welcome screen ─────────────────────────────── */
     #welcome {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      padding: 24px;
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; padding: 24px;
       background: #000;
     }
+    #welcome h1 { font-size: 22px; font-weight: 700; color: #e4e6eb; }
+    #welcome .model-label { font-size: 14px; color: #718096; }
 
-    #welcome h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #e4e6eb;
-    }
-
-    #welcome .model-label {
-      font-size: 14px;
-      color: #718096;
-      text-align: center;
-    }
-
-    /* Big load button — primary glasses interaction target */
-    #load-url-btn {
-      width: 100%;
-      height: 88px; /* minimum tap target per display guidelines */
-      background: #1c2a3a;
-      color: #63b3ed;
-      border: 2px solid #2d4a6e;
-      border-radius: 16px;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition:
-        transform 475ms cubic-bezier(0.6, 0, 0.4, 1),
-        background 300ms cubic-bezier(0.4, 0.04, 0.5, 1),
-        border-color 300ms cubic-bezier(0.4, 0.04, 0.5, 1);
+    #load-btn {
+      width: 100%; height: 88px;
+      background: #1c2a3a; color: #63b3ed;
+      border: 2px solid #2d4a6e; border-radius: 16px;
+      font-size: 18px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.04em;
+      transition: transform 475ms cubic-bezier(0.6,0,0.4,1),
+                  background 300ms cubic-bezier(0.4,0.04,0.5,1),
+                  border-color 300ms;
       outline: none;
     }
-    #load-url-btn:focus {
+    #load-btn:focus {
       transform: scale(0.91);
-      background: #1e3a5f;
-      border-color: #63b3ed;
+      background: #1e3a5f; border-color: #63b3ed;
       box-shadow: 0 0 0 2px #63b3ed44;
     }
-    #load-url-btn:active {
-      transform: scale(0.93);
-      transition-duration: 100ms;
-    }
 
-    /* Desktop extras — hidden on glasses (no useful input method) */
-    .desktop-only {
-      width: 100%;
-    }
-
-    #url-input {
-      width: 100%;
-      background: #1C1E21;
-      border: 1px solid #2d3748;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #e4e6eb;
-      outline: none;
-      transition: border-color 200ms;
-      box-sizing: border-box;
-    }
-    #url-input:focus { border-color: #63b3ed; }
-    #url-input::placeholder { color: #4a5568; }
-
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      color: #4a5568;
-      font-size: 12px;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #2d3748;
-    }
-
+    .desktop-only { width: 100%; }
     #drop-zone {
-      width: 100%;
-      border: 1px dashed #2d3748;
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      color: #4a5568;
-      font-size: 13px;
-      cursor: pointer;
+      width: 100%; border: 1px dashed #2d3748; border-radius: 8px;
+      padding: 16px; text-align: center; color: #4a5568;
+      font-size: 13px; cursor: pointer;
       transition: border-color 150ms, color 150ms;
     }
-    #drop-zone:hover, #drop-zone.dragover {
-      border-color: #63b3ed;
-      color: #63b3ed;
-    }
+    #drop-zone:hover, #drop-zone.dragover { border-color: #63b3ed; color: #63b3ed; }
     #drop-zone span { display: block; font-size: 11px; margin-top: 4px; color: #4a5568; }
-
-    #welcome .pinch-hint {
-      font-size: 11px;
-      color: #4a5568;
-      text-align: center;
-    }
-
     #file-input { display: none; }
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; color: #4a5568; font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #2d3748;
+    }
+    .pinch-hint { font-size: 11px; color: #4a5568; text-align: center; }
 
-    /* ── Loading ──────────────────────────────────────────────────── */
+    /* ── Loading ────────────────────────────────────── */
     #loading {
-      position: absolute;
-      inset: 0;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
+      position: absolute; inset: 0;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
       background: #000;
     }
     .spinner {
       width: 40px; height: 40px;
-      border: 3px solid #1C1E21;
-      border-top-color: #63b3ed;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      border: 3px solid #1C1E21; border-top-color: #63b3ed;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     #loading-label { font-size: 14px; color: #b0b3b8; }
 
-    /* ── Viewer HUD ───────────────────────────────────────────────── */
+    /* ── Viewer ─────────────────────────────────────── */
+    #viewer { position: absolute; inset: 0; display: none; }
+
+    model-viewer {
+      width: 600px; height: 600px;
+      background-color: transparent;
+      --poster-color: transparent;
+    }
+
+    /* Top bar */
     #topbar {
-      position: absolute;
-      top: 8px; left: 8px; right: 8px;
-      height: 48px;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
+      position: absolute; top: 8px; left: 8px; right: 8px;
+      height: 48px; display: none;
+      align-items: center; justify-content: space-between;
       padding: 0 16px;
+      background: #0a0a0f; border-radius: 12px;
     }
-    #model-name { font-size: 15px; font-weight: 700; color: #fff; opacity: 0.9; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    #mode-badge {
-      font-size: 12px; font-weight: 600;
-      padding: 4px 10px; border-radius: 8px;
-      background: #1c2a3a; color: #63b3ed;
-      letter-spacing: 0.05em; text-transform: uppercase;
-      cursor: pointer;
-      transition: background 300ms cubic-bezier(0.4,0.04,0.5,1), color 300ms;
-    }
-    #mode-badge.zoom  { background: #1a2e1a; color: #68d391; }
-    #mode-badge.reset { background: #2e1a1a; color: #fc8181; }
-
+    #model-name { font-size: 15px; font-weight: 700; color: #fff; opacity: 0.9; }
     #back-btn {
       font-size: 18px; background: none; border: none;
       color: #718096; cursor: pointer; padding: 4px 8px; border-radius: 6px;
-      transition: color 150ms;
     }
     #back-btn:hover { color: #e4e6eb; }
 
+    /* Bottom bar */
     #bottombar {
-      position: absolute;
-      bottom: 8px; left: 8px; right: 8px;
-      height: 48px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
+      position: absolute; bottom: 8px; left: 8px; right: 8px;
+      height: 48px; display: none;
+      align-items: center; justify-content: center; gap: 20px;
       padding: 0 16px;
+      background: #0a0a0f; border-radius: 12px;
     }
     .ctrl-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b0b3b8; }
     .ctrl-key {
@@ -203,21 +119,7 @@
       padding: 2px 6px; font-size: 11px; color: #e4e6eb; font-weight: 600;
     }
 
-    #dpad-indicator {
-      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-      display: none;
-      grid-template-columns: 20px 20px 20px;
-      grid-template-rows: 20px 20px 20px;
-      gap: 2px; opacity: 0.35;
-    }
-    .dpad-btn {
-      background: #1C1E21; border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; color: #e4e6eb;
-      transition: background 100ms, opacity 100ms;
-    }
-    .dpad-btn.active { background: #2d4a6e; opacity: 1; }
-
+    /* Toast */
     #toast {
       position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
       background: #1C1E21; color: #e4e6eb; font-size: 13px;
@@ -227,45 +129,32 @@
     }
     #toast.show { opacity: 1; }
 
+    /* Error */
     #error-bar {
-      position: absolute; bottom: 70px; left: 24px; right: 24px;
+      position: absolute; top: 50%; left: 24px; right: 24px;
+      transform: translateY(-50%);
       background: #742a2a; color: #fed7d7; font-size: 13px;
       padding: 10px 16px; border-radius: 8px;
-      display: none; text-align: center; line-height: 1.4;
+      display: none; text-align: center; line-height: 1.6;
+      z-index: 100;
     }
-
-    /* Drop overlay while dragging onto viewer */
-    #drop-overlay {
-      position: absolute; inset: 0; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(49,130,206,0.12);
-      border: 3px dashed #63b3ed;
-      font-size: 18px; color: #63b3ed;
-      pointer-events: none;
-    }
-    #drop-overlay.active { display: flex; }
   </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- Welcome screen -->
+  <!-- Welcome -->
   <div id="welcome">
     <h1>GLB Viewer</h1>
     <p class="model-label">L-39 Skyfox</p>
-
-    <button id="load-url-btn" tabindex="0">⟳ Load model</button>
-
-    <p class="pinch-hint">Pinch to confirm · D-pad to navigate after loading</p>
-
+    <button id="load-btn" tabindex="0">⟳ Load model</button>
+    <p class="pinch-hint">Pinch to confirm · D-pad to rotate after loading</p>
     <div class="divider desktop-only">or drop a file</div>
-
     <div id="drop-zone" class="desktop-only">
       📂 Click to browse or drag & drop
       <span>.glb · .gltf supported</span>
     </div>
     <input type="file" id="file-input" accept=".glb,.gltf" />
-    <input id="url-input" type="hidden" value="/l39_skyfox.glb" />
   </div>
 
   <!-- Loading -->
@@ -274,288 +163,148 @@
     <div id="loading-label">Loading model…</div>
   </div>
 
-  <!-- Viewer HUD -->
-  <div id="topbar" class="surface">
-    <button id="back-btn" title="Load another model">←</button>
-    <span id="model-name"></span>
-    <span id="mode-badge">ROTATE</span>
+  <!-- Viewer -->
+  <div id="viewer">
+    <model-viewer
+      id="mv"
+      src="/l39_skyfox.glb"
+      alt="L-39 Skyfox"
+      camera-controls
+      auto-rotate
+      auto-rotate-delay="0"
+      rotation-per-second="20deg"
+      shadow-intensity="0"
+      exposure="1"
+      tone-mapping="commerce"
+    ></model-viewer>
   </div>
 
-  <div id="dpad-indicator">
-    <div></div><div class="dpad-btn" id="dp-up">▲</div><div></div>
-    <div class="dpad-btn" id="dp-left">◀</div>
-    <div class="dpad-btn" id="dp-enter">●</div>
-    <div class="dpad-btn" id="dp-right">▶</div>
-    <div></div><div class="dpad-btn" id="dp-down">▼</div><div></div>
+  <!-- HUD -->
+  <div id="topbar">
+    <button id="back-btn">←</button>
+    <span id="model-name">L-39 Skyfox</span>
   </div>
-
-  <div id="bottombar" class="surface">
+  <div id="bottombar">
     <span class="ctrl-hint"><span class="ctrl-key">← →</span> rotate</span>
     <span class="ctrl-hint"><span class="ctrl-key">↑ ↓</span> tilt</span>
-    <span class="ctrl-hint"><span class="ctrl-key">Enter</span> mode</span>
-    <span class="ctrl-hint"><span class="ctrl-key">Esc</span> reset</span>
+    <span class="ctrl-hint"><span class="ctrl-key">+  −</span> zoom</span>
   </div>
 
-  <div id="drop-overlay">Drop to load</div>
   <div id="toast"></div>
   <div id="error-bar"></div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"
-  }
-}
-</script>
-
 <script type="module">
-window.addEventListener('error', e => {
-  document.getElementById('error-bar').textContent = 'JS Error: ' + e.message;
-  document.getElementById('error-bar').style.display = 'block';
-});
-window.addEventListener('unhandledrejection', e => {
-  document.getElementById('error-bar').textContent = 'Async Error: ' + (e.reason?.message || e.reason);
-  document.getElementById('error-bar').style.display = 'block';
-});
-
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { PMREMGenerator } from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-// ── Renderer ──────────────────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(600, 600);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.setClearColor(0x000000, 0);
-document.getElementById('app').insertBefore(renderer.domElement, document.getElementById('welcome'));
-
-// ── Scene ─────────────────────────────────────────────────────────────────────
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, 1, 0.001, 1000);
-camera.position.set(0, 2, 8);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
-dirLight.position.set(5, 10, 7);
-scene.add(dirLight);
-const rimLight = new THREE.DirectionalLight(0x8ab4f8, 0.8);
-rimLight.position.set(-5, 2, -5);
-scene.add(rimLight);
-
-const pmrem = new PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-
-// ── Loaders ───────────────────────────────────────────────────────────────────
-const draco = new DRACOLoader();
-draco.setDecoderPath('/draco/');
-draco.setDecoderConfig({ type: 'js' }); // JS decoder — no WASM, broader compatibility
-const loader = new GLTFLoader();
-loader.setDRACOLoader(draco);
-
-// ── State ─────────────────────────────────────────────────────────────────────
-const MODES = ['ROTATE', 'ZOOM', 'RESET'];
-let modeIndex = 0;
-const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-let currentModel = null;
-let modelCenter = new THREE.Vector3();
-let modelRadius = 1;
-let camTheta = 0, camPhi = 0.3, camDist = 8;
-const ROTATE_SPEED = 0.022, ZOOM_SPEED = 0.08;
-
-// ── DOM ───────────────────────────────────────────────────────────────────────
-const welcomeEl  = document.getElementById('welcome');
-const loadingEl  = document.getElementById('loading');
-const loadLabel  = document.getElementById('loading-label');
-const topbarEl   = document.getElementById('topbar');
-const bottomEl   = document.getElementById('bottombar');
-const dpadEl     = document.getElementById('dpad-indicator');
-const modeBadge  = document.getElementById('mode-badge');
-const modelName  = document.getElementById('model-name');
-const toastEl    = document.getElementById('toast');
-const errorBar   = document.getElementById('error-bar');
-const urlInput   = document.getElementById('url-input');
-const dropZone   = document.getElementById('drop-zone');
-const fileInput  = document.getElementById('file-input');
-const dropOverlay= document.getElementById('drop-overlay');
-const backBtn    = document.getElementById('back-btn');
+const welcomeEl = document.getElementById('welcome');
+const loadingEl = document.getElementById('loading');
+const viewerEl  = document.getElementById('viewer');
+const topbarEl  = document.getElementById('topbar');
+const bottomEl  = document.getElementById('bottombar');
+const errorBar  = document.getElementById('error-bar');
+const mv        = document.getElementById('mv');
+const loadBtn   = document.getElementById('load-btn');
+const backBtn   = document.getElementById('back-btn');
+const fileInput = document.getElementById('file-input');
+const dropZone  = document.getElementById('drop-zone');
+const toastEl   = document.getElementById('toast');
 
 let toastTimer = null;
-
-function showToast(msg, duration = 1800) {
+function showToast(msg, ms = 2000) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
 function showError(msg) {
-  errorBar.textContent = msg;
+  errorBar.innerHTML = msg;
   errorBar.style.display = 'block';
-  // Don't auto-hide — user must tap to dismiss
-}
-
-function showViewer(name) {
-  welcomeEl.style.display = 'none';
-  loadingEl.style.display = 'none';
-  topbarEl.style.display  = 'flex';
-  bottomEl.style.display  = 'flex';
-  dpadEl.style.display    = 'grid';
-  modelName.textContent   = name;
-  showToast('Loaded — use D-pad to navigate', 2500);
 }
 
 function showWelcome() {
   welcomeEl.style.display = 'flex';
   loadingEl.style.display = 'none';
+  viewerEl.style.display  = 'none';
   topbarEl.style.display  = 'none';
   bottomEl.style.display  = 'none';
-  dpadEl.style.display    = 'none';
 }
 
-function setMode(idx) {
-  modeIndex = idx % MODES.length;
-  const label = MODES[modeIndex];
-  modeBadge.textContent = label;
-  modeBadge.className = label === 'ZOOM' ? 'zoom' : label === 'RESET' ? 'reset' : '';
-  if (label === 'RESET') resetCamera();
-  showToast(label === 'ROTATE' ? '↔ Rotate' : label === 'ZOOM' ? '⇅ Zoom' : '⟳ Reset view');
+function showViewer(name) {
+  welcomeEl.style.display = 'none';
+  loadingEl.style.display = 'none';
+  viewerEl.style.display  = 'block';
+  topbarEl.style.display  = 'flex';
+  bottomEl.style.display  = 'flex';
+  document.getElementById('model-name').textContent = name;
+  showToast('Loaded · use D-pad to rotate', 3000);
 }
 
-function resetCamera() {
-  camTheta = 0; camPhi = 0.3; camDist = modelRadius * 2.5;
-}
-
-function updateCamera() {
-  const x = modelCenter.x + camDist * Math.cos(camPhi) * Math.sin(camTheta);
-  const y = modelCenter.y + camDist * Math.sin(camPhi);
-  const z = modelCenter.z + camDist * Math.cos(camPhi) * Math.cos(camTheta);
-  camera.position.set(x, y, z);
-  camera.lookAt(modelCenter);
-}
-
-function onModelLoaded(gltf, name) {
-  if (currentModel) scene.remove(currentModel);
-  currentModel = gltf.scene;
-  scene.add(currentModel);
-
-  const box = new THREE.Box3().setFromObject(currentModel);
-  box.getCenter(modelCenter);
-  modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
-  camDist = modelRadius * 2.5;
-  camTheta = 0; camPhi = 0.2;
-  updateCamera();
-  showViewer(name);
-}
-
-function loadFromUrl(url) {
-  const name = url.split('/').pop().split('?')[0] || 'Model';
+function loadUrl(url, name) {
   welcomeEl.style.display = 'none';
   loadingEl.style.display = 'flex';
-  loadLabel.textContent = 'Loading model…';
+  errorBar.style.display  = 'none';
+  document.getElementById('loading-label').textContent = 'Loading model…';
 
-  loader.load(url,
-    gltf => onModelLoaded(gltf, name),
-    xhr => { if (xhr.total) loadLabel.textContent = `Loading… ${Math.round(xhr.loaded/xhr.total*100)}%`; },
-    err => { showWelcome(); showError('Failed to load: ' + (err.message || 'Check URL and CORS headers.')); }
-  );
+  mv.src = url;
+  mv.addEventListener('load', () => showViewer(name), { once: true });
+  mv.addEventListener('error', e => {
+    showWelcome();
+    showError('Failed to load model.<br>' + (e.detail?.sourceError?.message || url));
+  }, { once: true });
 }
 
-function loadFromFile(file) {
+function loadFile(file) {
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
   if (ext !== 'glb' && ext !== 'gltf') { showError('Only .glb and .gltf files are supported.'); return; }
-
-  welcomeEl.style.display = 'none';
-  loadingEl.style.display = 'flex';
-  loadLabel.textContent = 'Loading model…';
-
-  const url = URL.createObjectURL(file);
-  loader.load(url,
-    gltf => { URL.revokeObjectURL(url); onModelLoaded(gltf, file.name); },
-    undefined,
-    err => { URL.revokeObjectURL(url); showWelcome(); showError('Failed to load: ' + (err.message || err)); }
-  );
+  loadUrl(URL.createObjectURL(file), file.name);
 }
 
-// ── URL input ─────────────────────────────────────────────────────────────────
-document.getElementById('load-url-btn').addEventListener('click', () => {
-  const url = urlInput.value.trim() || '/l39_skyfox.glb';
-  loadFromUrl(url);
-});
+// Load button
+loadBtn.addEventListener('click', () => loadUrl('/l39_skyfox.glb', 'L-39 Skyfox'));
+loadBtn.focus();
 
-// ── File picker ───────────────────────────────────────────────────────────────
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => loadFromFile(fileInput.files[0]));
-
-// ── Drag & drop on welcome ────────────────────────────────────────────────────
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); loadFromFile(e.dataTransfer.files[0]); });
-
-// ── Drag & drop on viewer ─────────────────────────────────────────────────────
-document.addEventListener('dragover', e => { if (currentModel) { e.preventDefault(); dropOverlay.classList.add('active'); } });
-document.addEventListener('dragleave', e => { if (!e.relatedTarget) dropOverlay.classList.remove('active'); });
-document.addEventListener('drop', e => { e.preventDefault(); dropOverlay.classList.remove('active'); if (currentModel) loadFromFile(e.dataTransfer.files[0]); });
-
-// ── Back button ───────────────────────────────────────────────────────────────
+// Back button
 backBtn.addEventListener('click', showWelcome);
 
-// ── ?url= query param ─────────────────────────────────────────────────────────
-const params = new URLSearchParams(location.search);
-if (params.get('url')) {
-  urlInput.value = params.get('url');
+// File picker
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); });
+
+// D-pad control of model-viewer
+const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
+let theta = 0, phi = 80, radius = null;
+
+function applyCamera() {
+  mv.cameraOrbit = `${theta}deg ${phi}deg ${radius || 'auto'}`;
 }
 
-// Auto-focus Load button so pinch works immediately
-document.getElementById('load-url-btn').focus();
-
-// ── D-pad feedback ────────────────────────────────────────────────────────────
-function flashDpad(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.add('active');
-  setTimeout(() => el.classList.remove('active'), 120);
-}
-
-// ── Input ─────────────────────────────────────────────────────────────────────
 window.addEventListener('keydown', e => {
-  if (document.activeElement === urlInput) return;
+  if (viewerEl.style.display === 'none') return;
   if (e.key in keys) { keys[e.key] = true; e.preventDefault(); }
-  if (e.key === 'Enter' && currentModel) { setMode(modeIndex + 1); flashDpad('dp-enter'); }
-  if (e.key === 'Escape' && currentModel) { resetCamera(); showToast('⟳ Reset view'); }
-  const dpadMap = { ArrowLeft:'dp-left', ArrowRight:'dp-right', ArrowUp:'dp-up', ArrowDown:'dp-down' };
-  if (dpadMap[e.key]) flashDpad(dpadMap[e.key]);
+  if (e.key === 'Escape') { showWelcome(); }
 });
 window.addEventListener('keyup', e => { if (e.key in keys) keys[e.key] = false; });
 
-// ── Render loop ───────────────────────────────────────────────────────────────
-function animate() {
-  requestAnimationFrame(animate);
-  if (currentModel && topbarEl.style.display !== 'none') {
-    const mode = MODES[modeIndex];
-    if (mode === 'ROTATE') {
-      if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED;
-      if (keys.ArrowRight) camTheta += ROTATE_SPEED;
-      if (keys.ArrowUp)    camPhi = Math.min(1.1, camPhi + ROTATE_SPEED);
-      if (keys.ArrowDown)  camPhi = Math.max(-1.1, camPhi - ROTATE_SPEED);
-    } else if (mode === 'ZOOM') {
-      if (keys.ArrowUp)    camDist = Math.max(modelRadius * 0.5, camDist - ZOOM_SPEED * modelRadius * 0.1);
-      if (keys.ArrowDown)  camDist = Math.min(modelRadius * 6, camDist + ZOOM_SPEED * modelRadius * 0.1);
-      if (keys.ArrowLeft)  camTheta -= ROTATE_SPEED * 0.5;
-      if (keys.ArrowRight) camTheta += ROTATE_SPEED * 0.5;
-    }
-    updateCamera();
+// Animate D-pad rotation
+function tick() {
+  if (viewerEl.style.display !== 'none') {
+    const speed = 1.5;
+    if (keys.ArrowLeft)  { theta -= speed; applyCamera(); }
+    if (keys.ArrowRight) { theta += speed; applyCamera(); }
+    if (keys.ArrowUp)    { phi = Math.max(10, phi - speed); applyCamera(); }
+    if (keys.ArrowDown)  { phi = Math.min(170, phi + speed); applyCamera(); }
   }
-  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
 }
-animate();
+tick();
+
+// Global error catch
+window.addEventListener('error', e => showError('Error: ' + e.message));
+window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reason?.message || e.reason)));
 </script>
 </body>
 </html>
