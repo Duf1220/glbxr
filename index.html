@@ -488,6 +488,9 @@ const params = new URLSearchParams(location.search);
 if (params.get('url')) {
   urlInput.value = params.get('url');
   loadFromUrl(params.get('url'));
+} else {
+  // Auto-load model from secure proxy
+  loadFromUrl('/api/model');
 }
 
 // ── D-pad feedback ────────────────────────────────────────────────────────────
