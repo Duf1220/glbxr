@@ -1,12 +1,12 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/model.js", "use": "@vercel/node" },
+    { "src": "api/glb.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "qr.png", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/model", "dest": "/api/model.js" },
+    { "src": "/api/glb", "dest": "/api/glb.js" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }

@@ -265,7 +265,7 @@
       <span>.glb · .gltf supported</span>
     </div>
     <input type="file" id="file-input" accept=".glb,.gltf" />
-    <input id="url-input" type="hidden" value="/api/model" />
+    <input id="url-input" type="hidden" value="/api/glb" />
   </div>
 
   <!-- Loading -->
@@ -476,7 +476,7 @@ function loadFromFile(file) {
 
 // ── URL input ─────────────────────────────────────────────────────────────────
 document.getElementById('load-url-btn').addEventListener('click', () => {
-  const url = urlInput.value.trim() || '/api/model';
+  const url = urlInput.value.trim() || '/api/glb';
   loadFromUrl(url);
 });
 
