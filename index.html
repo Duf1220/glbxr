@@ -118,6 +118,10 @@ window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reas
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/+esm';
+
+// ── Initialize Vercel Web Analytics ────────────────────────────────────────────
+inject();
 
 // ── Renderer (minimal settings for glasses) ───────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' });
