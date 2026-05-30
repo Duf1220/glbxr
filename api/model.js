@@ -1,5 +1,3 @@
-const { presignUrl } = require('@vercel/blob');
-
 const BLOB_URL = 'https://ts9k0yjegcacnjcs.private.blob.vercel-storage.com/l39_skyfox.glb';
 
 module.exports = async function handler(req, res) {
@@ -11,18 +9,27 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const signed = await presignUrl(BLOB_URL, {
-      token,
-      expiresIn: 300, // 5 minutes
+    const upstream = await fetch(BLOB_URL, {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
+    if (!upstream.ok) {
+      res.statusCode = 502;
+      res.end('Blob error: ' + upstream.status);
+      return;
+    }
+
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    res.statusCode = 200;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
-    res.statusCode = 302;
-    res.setHeader('Location', signed);
-    res.end();
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+
   } catch (e) {
-    console.error('presignUrl error:', e.message);
+    console.error('Error:', e.message);
     res.statusCode = 500;
     res.end(e.message);
   }
