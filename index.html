@@ -118,8 +118,6 @@ window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reas
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // ── Renderer (minimal settings for glasses) ───────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' });
@@ -142,12 +140,8 @@ const rim = new THREE.DirectionalLight(0x8ab4f8, 0.6);
 rim.position.set(-5, 2, -5);
 scene.add(rim);
 
-// Draco with local JS decoder
-const draco = new DRACOLoader();
-draco.setDecoderPath('/draco/');
-draco.setDecoderConfig({ type: 'js' });
+// No Draco — instant decode
 const gltfLoader = new GLTFLoader();
-gltfLoader.setDRACOLoader(draco);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const MODES = ['ROTATE','ZOOM','RESET'];
