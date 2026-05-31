@@ -119,9 +119,13 @@ window.addEventListener('unhandledrejection', e => showError('Error: ' + (e.reas
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/+esm';
+import { injectSpeedInsights } from 'https://cdn.jsdelivr.net/npm/@vercel/speed-insights@1/+esm';
 
 // ── Initialize Vercel Web Analytics ────────────────────────────────────────────
 inject();
+
+// ── Initialize Vercel Speed Insights ───────────────────────────────────────────
+injectSpeedInsights();
 
 // ── Renderer (minimal settings for glasses) ───────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' });
